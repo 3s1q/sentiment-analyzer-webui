@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  project:
+    build: .
+    container_name: project
+    restart: unless-stopped
+    command: daphne project.asgi:application -b 0.0.0.0 -p 8000
+    expose:
+      - 8000
+    env_file:
+      - ./.env.project
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    restart: always
+    volumes:
+      - data:/var/lib/postgresql/data
+    env_file:
+      - ./.env.postgres
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:0.9
+    container_name: nginx-proxy
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx.conf:/etc/nginx/conf.d/nginx.conf
+      - html:/usr/share/nginx/html
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - project
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: acme-companion
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - html:/usr/share/nginx/html
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - acme:/etc/acme.sh
+    env_file:
+      - ./.env.acme-companion
+    depends_on:
+      - nginx-proxy
+
+volumes:
+  data:
+  html:
+  certs:
+  vhost:
+  acme:
