@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sentimental - 3 Salesmen and 1 Quant</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f2f2f2;
+      }
+
+      #textbox {
+        width: 33.33%;
+        height: 33.33%;
+        padding: 20px;
+        font-size: 24px;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+      }
+
+      ::placeholder {
+        color: #ccc;
+      }
+    </style>
+  </head>
+
+  <body>
+    <input type="text" id="textbox" placeholder="Enter text here..." />
+  </body>
+
+  <script>
+	// Define the global variable to keep track of the target background color
+	var targetBgColor = "rgb(255, 255, 255)";
+	document.body.style.backgroundColor = targetBgColor;
+
+	// Define the function that updates the background color
+	function updateBackground() {
+	  // Get the current background color
+	  var currentBgColor = document.body.style.backgroundColor;
+
+	  // Use the RGB values to calculate the difference between the current
+	  // background color and the target background color
+	  var currentRgb = getRgbFromColor(currentBgColor);
+	  var targetRgb = getRgbFromColor(targetBgColor);
+	  var diffRgb = {
+	    r: targetRgb.r - currentRgb.r,
+	    g: targetRgb.g - currentRgb.g,
+	    b: targetRgb.b - currentRgb.b
+	  };
+
+	  // Calculate the new background color based on the current background color
+	  // and the difference between the current background color and the target
+	  // background color
+	  var newRgb = {
+	    r: currentRgb.r + (diffRgb.r / 10),
+	    g: currentRgb.g + (diffRgb.g / 10),
+	    b: currentRgb.b + (diffRgb.b / 10)
+	  };
+	  var newBgColor = `rgb(${newRgb.r}, ${newRgb.g}, ${newRgb.b})`;
+
+	  // Update the background color to the new background color
+	  document.body.style.backgroundColor = newBgColor;
+	}
+
+	// Call the updateBackground function every 100ms
+	setInterval(updateBackground, 100);
+
+	// Function to get RGB values from a color string
+	function getRgbFromColor(color) {
+	  var rgba = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(,\s*\d+)?\)$/);
+	  return rgba ? { r: +rgba[1], g: +rgba[2], b: +rgba[3] } : null;
+	}
+
+	let lastText = null;
+
+	function sentimental() {
+		let curText = document.getElementById("textbox").value;
+
+		if (curText != lastText) {
+			lastText = curText;
+			// Set the URL of the Django server and the input text for the request
+			const url = `/analyze/?input=${lastText}`;
+
+			// Send a GET request to the Django server and handle the response
+			fetch(url)
+			  .then(response => response.json())
+			  .then(data => {
+			    // Handle the data from the response
+				let quant = data.neutral / 2 + data.positive;
+				  console.log(lastText, quant, data)
+				if (quant <= 0.5) {
+					let val = Math.round(quant * 2 * 255);
+					targetBgColor = `rgb(255, ${val}, ${val})`;
+				} else {
+					let val = Math.round(255 - (quant - 0.5) * 2 * 255);
+					targetBgColor = `rgb(${val}, 255, ${val})`;
+				}
+			  })
+			  .catch(error => {
+			    // Handle any errors that occur during the request
+			    console.error(error);
+			  });
+		}
+	}
+	setInterval(sentimental, 1000);
+  </script>
+</html>
